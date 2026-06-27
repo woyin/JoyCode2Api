@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/vibe-coding-labs/JoyCodeProxy/pkg/joycode"
+	"github.com/vibe-coding-labs/JoyCode2Api/pkg/joycode"
 )
 
 // TranslateRequest converts an OpenAI ChatRequest to JoyCode API body.

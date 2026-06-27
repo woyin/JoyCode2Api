@@ -102,7 +102,7 @@ const MainLayout: React.FC = () => {
             </Tooltip>
             <Tooltip title="去 GitHub Star 支持我们">
             <a
-              href="https://github.com/vibe-coding-labs/JoyCodeProxy"
+              href="https://github.com/vibe-coding-labs/JoyCode2Api"
               target="_blank"
               rel="noopener noreferrer"
               style={{ display: 'flex', alignItems: 'center', gap: 6, color: token.colorTextSecondary, fontSize: 13, textDecoration: 'none' }}
