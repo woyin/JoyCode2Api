@@ -1,6 +1,6 @@
 <div align="center">
 
-# JoyCodeProxy
+# JoyCode2Api
 
 **一个不太正经的协议翻译器**
 
@@ -24,10 +24,10 @@ JoyAI-Code · GLM-5.1 · Kimi-K2.6 · MiniMax-M2.7 · Doubao-Seed-2.0-pro
 
 事情是这样的：JoyCode（京东的 AI 编程助手）里面有一些不错的模型，GLM、Kimi、MiniMax、Doubao 这些都有。但它的 API 协议跟 Anthropic 和 OpenAI 的不一样，所以 Claude Code、Cursor 这些主流编程工具接不上。
 
-JoyCodeProxy 就是在中间做了一个翻译层，把协议对齐了。改两个环境变量，Claude Code 就能直接用 JoyCode 的模型了。
+JoyCode2Api 就是在中间做了一个翻译层，把协议对齐了。改两个环境变量，Claude Code 就能直接用 JoyCode 的模型了。
 
 ```
-Claude Code / Cursor / Windsurf  →  JoyCodeProxy  →  JoyCode API
+Claude Code / Cursor / Windsurf  →  JoyCode2Api  →  JoyCode API
                                     (协议翻译)
 ```
 
@@ -78,7 +78,7 @@ Claude Code / Cursor / Windsurf  →  JoyCodeProxy  →  JoyCode API
 cd web && npm install && npm run build && cd ..
 
 # 再构建后端（前端会自动嵌入）
-go build -o joycode_proxy_bin ./cmd/JoyCodeProxy/
+go build -o JoyCode2Api ./cmd/JoyCode2Api/
 ```
 
 或者用 Docker：
@@ -101,7 +101,7 @@ docker run -p 34891:34891 joycode-proxy
 ### 启动
 
 ```bash
-./joycode_proxy_bin serve
+./JoyCode2Api serve
 ```
 
 默认监听 `0.0.0.0:34891`。macOS 首次启动会自动从本地 JoyCode 客户端读取凭据，不需要手动配。
@@ -159,7 +159,7 @@ claude
 ## 项目结构
 
 ```
-cmd/JoyCodeProxy/    入口，HTTP 服务器
+cmd/JoyCode2Api/    入口，HTTP 服务器
 pkg/anthropic/       Anthropic 协议翻译（请求、响应、SSE 流式）
 pkg/openai/          OpenAI 协议翻译
 pkg/joycode/         JoyCode API 客户端

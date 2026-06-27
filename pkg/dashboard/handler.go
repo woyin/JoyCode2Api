@@ -21,11 +21,11 @@ import (
 	"time"
 
 	_ "github.com/mattn/go-sqlite3"
-	"github.com/vibe-coding-labs/JoyCodeProxy/pkg/auth"
-	"github.com/vibe-coding-labs/JoyCodeProxy/pkg/joycode"
-	"github.com/vibe-coding-labs/JoyCodeProxy/pkg/keepalive"
-	"github.com/vibe-coding-labs/JoyCodeProxy/pkg/proxy"
-	"github.com/vibe-coding-labs/JoyCodeProxy/pkg/store"
+	"github.com/vibe-coding-labs/JoyCode2Api/pkg/auth"
+	"github.com/vibe-coding-labs/JoyCode2Api/pkg/joycode"
+	"github.com/vibe-coding-labs/JoyCode2Api/pkg/keepalive"
+	"github.com/vibe-coding-labs/JoyCode2Api/pkg/proxy"
+	"github.com/vibe-coding-labs/JoyCode2Api/pkg/store"
 )
 
 type Handler struct {
@@ -83,7 +83,7 @@ var (
 )
 
 const ghStarsCacheTTL = 1 * time.Hour
-const ghRepo = "vibe-coding-labs/JoyCodeProxy"
+const ghRepo = "vibe-coding-labs/JoyCode2Api"
 
 func (h *Handler) handleGitHubStars(w http.ResponseWriter, r *http.Request) {
 	setCors(w)
@@ -205,7 +205,7 @@ func (h *Handler) ServeStatic(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusNotFound, map[string]interface{}{
 			"error": map[string]string{
 				"type":    "invalid_request_error",
-				"message": fmt.Sprintf("%s %s not found. JoyCodeProxy serves the API under /v1/. Set base_url to http://<host>:<port>/v1", r.Method, path),
+				"message": fmt.Sprintf("%s %s not found. JoyCode2Api serves the API under /v1/. Set base_url to http://<host>:<port>/v1", r.Method, path),
 			},
 		})
 		return

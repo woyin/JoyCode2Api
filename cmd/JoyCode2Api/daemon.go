@@ -16,7 +16,7 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
-	"github.com/vibe-coding-labs/JoyCodeProxy/pkg/logrot"
+	"github.com/vibe-coding-labs/JoyCode2Api/pkg/logrot"
 )
 
 const (

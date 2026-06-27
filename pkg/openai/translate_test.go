@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/vibe-coding-labs/JoyCodeProxy/pkg/joycode"
+	"github.com/vibe-coding-labs/JoyCode2Api/pkg/joycode"
 )
 
 // --- TranslateRequest tests ---
