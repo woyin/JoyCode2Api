@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"runtime"
 
-	_ "github.com/mattn/go-sqlite3"
+	_ "modernc.org/sqlite"
 )
 
 // Credentials holds JoyCode authentication data.
@@ -70,7 +70,9 @@ func loadFromStateDB(dbPath string) (*Credentials, error) {
 		return nil, fmt.Errorf("JoyCode state database not found at %s: %w", dbPath, err)
 	}
 
-	db, err := sql.Open("sqlite3", dbPath+"?mode=ro")
+	// modernc 不支持 mattn 的 ?mode=ro query；用 SQLite URI 以真正的只读共享锁
+	// 打开 JoyCode IDE 的库，避免 IDE 运行时拿不到锁。
+	db, err := sql.Open("sqlite", "file:"+dbPath+"?mode=ro")
 	if err != nil {
 		return nil, fmt.Errorf("cannot open JoyCode database: %w", err)
 	}

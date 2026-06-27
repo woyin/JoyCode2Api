@@ -20,7 +20,7 @@ import (
 	"sync"
 	"time"
 
-	_ "github.com/mattn/go-sqlite3"
+	_ "modernc.org/sqlite"
 	"github.com/vibe-coding-labs/JoyCode2Api/pkg/auth"
 	"github.com/vibe-coding-labs/JoyCode2Api/pkg/joycode"
 	"github.com/vibe-coding-labs/JoyCode2Api/pkg/keepalive"
@@ -1236,7 +1236,7 @@ func (h *Handler) handleClearJoyCodeSession(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	db, err := sql.Open("sqlite3", dbPath+"?mode=rw")
+	db, err := sql.Open("sqlite", dbPath)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "无法打开 JoyCode 数据库: "+err.Error())
 		return
