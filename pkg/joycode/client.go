@@ -168,8 +168,9 @@ func (c *Client) requestURL(endpoint string) string {
 	}
 	if c.ColorBaseURL != "" {
 		if u, err := url.Parse(c.ColorBaseURL); err == nil && u.Host != "" {
+			basePath := strings.TrimRight(u.Path, "/")
 			query, sign := colorSign(ep.functionID)
-			return u.Scheme + "://" + u.Host + colorGatewayPath + "?" + query + "&sign=" + sign
+			return u.Scheme + "://" + u.Host + basePath + colorGatewayPath + "?" + query + "&sign=" + sign
 		}
 	}
 	base := c.MasterBaseURL
