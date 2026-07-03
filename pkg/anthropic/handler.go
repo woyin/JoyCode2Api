@@ -258,9 +258,11 @@ func (h *Handler) handleStream(w http.ResponseWriter, r *http.Request, req *Mess
 
 	// Heartbeat: send periodic ping events while upstream is silent.
 	stopHeartbeat := make(chan struct{})
+	heartbeatDone := make(chan struct{})
 	go func() {
 		ticker := time.NewTicker(5 * time.Second)
 		defer ticker.Stop()
+		defer close(heartbeatDone)
 		for {
 			select {
 			case <-stopHeartbeat:
@@ -284,6 +286,7 @@ func (h *Handler) handleStream(w http.ResponseWriter, r *http.Request, req *Mess
 		resp, err = h.connectStreamWithRetry(r, jcBody, client)
 	}
 	close(stopHeartbeat)
+	<-heartbeatDone
 	if err != nil {
 		errMsg := err.Error()
 		if isContextLimitError(errMsg) {
@@ -523,9 +526,11 @@ func (h *Handler) handleNativeAnthropicStream(w http.ResponseWriter, r *http.Req
 	w.WriteHeader(200)
 
 	stopHeartbeat := make(chan struct{})
+	heartbeatDone := make(chan struct{})
 	go func() {
 		ticker := time.NewTicker(5 * time.Second)
 		defer ticker.Stop()
+		defer close(heartbeatDone)
 		for {
 			select {
 			case <-stopHeartbeat:
@@ -541,6 +546,7 @@ func (h *Handler) handleNativeAnthropicStream(w http.ResponseWriter, r *http.Req
 
 	resp, err := h.connectNativeAnthropicStreamWithRetry(r, body, client)
 	close(stopHeartbeat)
+	<-heartbeatDone
 	if err != nil {
 		reqLog(r).Error("native anthropic stream failed after retries", "error", err)
 		writeStreamError(w, flusher, err.Error())

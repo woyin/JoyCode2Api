@@ -79,9 +79,11 @@ func (s *Server) handleStreamChat(w http.ResponseWriter, r *http.Request, client
 	// time out or show "no response" during this gap. SSE comment lines (": ...")
 	// are part of the spec and ignored by all compliant clients.
 	stopHeartbeat := make(chan struct{})
+	heartbeatDone := make(chan struct{})
 	go func() {
 		ticker := time.NewTicker(5 * time.Second)
 		defer ticker.Stop()
+		defer close(heartbeatDone)
 		for {
 			select {
 			case <-stopHeartbeat:
@@ -99,6 +101,7 @@ func (s *Server) handleStreamChat(w http.ResponseWriter, r *http.Request, client
 	resp, err := client.PostStream("/api/saas/openai/v1/chat/completions", jcBody)
 	if err != nil {
 		close(stopHeartbeat)
+		<-heartbeatDone
 		slog.Error("chat stream upstream error", "model", model, "error", err)
 		msg := err.Error()
 		if isTimeoutError(msg) {
@@ -112,6 +115,7 @@ func (s *Server) handleStreamChat(w http.ResponseWriter, r *http.Request, client
 	}
 	defer resp.Body.Close()
 	close(stopHeartbeat)
+	<-heartbeatDone
 	slog.Info("stream: connected to upstream", "model", model, "ttfb_ms", time.Since(streamStart).Milliseconds())
 
 	// Pipe JoyCode SSE response line-by-line — already OpenAI-compatible format.
@@ -121,6 +125,7 @@ func (s *Server) handleStreamChat(w http.ResponseWriter, r *http.Request, client
 	scanner := bufio.NewScanner(resp.Body)
 	scanner.Buffer(make([]byte, 0, 64*1024), 1024*1024)
 	var inTk, outTk int
+	sawDone := false
 	for scanner.Scan() {
 		line := scanner.Text()
 		if line == "" {
@@ -128,6 +133,9 @@ func (s *Server) handleStreamChat(w http.ResponseWriter, r *http.Request, client
 			w.Write([]byte("\n"))
 			flusher.Flush()
 			continue
+		}
+		if strings.Contains(line, "[DONE]") {
+			sawDone = true
 		}
 		w.Write([]byte(line))
 		w.Write([]byte("\n"))
@@ -148,6 +156,14 @@ func (s *Server) handleStreamChat(w http.ResponseWriter, r *http.Request, client
 	}
 	if err := scanner.Err(); err != nil {
 		slog.Error("chat stream read error", "model", model, "error", err)
+	}
+	// Ensure the stream terminates with [DONE]. Some upstream responses omit it
+	// (e.g. premature close, certain error paths), leaving clients like
+	// CherryStudio hanging in "generating" state. Always send a final [DONE].
+	if !sawDone {
+		slog.Warn("stream ended without [DONE], sending terminator", "model", model)
+		w.Write([]byte("data: [DONE]\n\n"))
+		flusher.Flush()
 	}
 	if inTk > 0 || outTk > 0 {
 		store.SetTokenUsage(r, inTk, outTk)
