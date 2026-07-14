@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# ── JoyCodeProxy Release Script ──────────────────────────────────────
+# ── JoyCode2Api Release Script ──────────────────────────────────────
 # Usage: ./scripts/release.sh <version>
 # Example: ./scripts/release.sh v0.3.0
 #
@@ -20,8 +20,8 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 DIST_DIR="$ROOT_DIR/dist"
-VERSION_FILE="$ROOT_DIR/cmd/JoyCodeProxy/version.go"
-BINARY_NAME="JoyCodeProxy"
+VERSION_FILE="$ROOT_DIR/cmd/JoyCode2Api/version.go"
+BINARY_NAME="JoyCode2Api"
 
 # ── Validate input ───────────────────────────────────────────────────
 
@@ -36,7 +36,7 @@ fi
 VERSION_NUM="${VERSION#v}"
 
 echo "=========================================="
-echo "  JoyCodeProxy Release: $VERSION"
+echo "  JoyCode2Api Release: $VERSION"
 echo "=========================================="
 
 # ── Step 1: Build frontend ───────────────────────────────────────────
@@ -47,7 +47,7 @@ cd "$ROOT_DIR/web"
 npm install --silent
 npm run build
 
-if [[ ! -f "$ROOT_DIR/cmd/JoyCodeProxy/static/index.html" ]]; then
+if [[ ! -f "$ROOT_DIR/cmd/JoyCode2Api/static/index.html" ]]; then
     echo "ERROR: Frontend build failed - index.html not found"
     exit 1
 fi
@@ -84,7 +84,7 @@ cd "$ROOT_DIR"
 CGO_ENABLED=1 GOOS=darwin GOARCH=arm64 \
     go build -trimpath -ldflags "-s -w" \
     -o "$DIST_DIR/${BINARY_NAME}-darwin-arm64" \
-    ./cmd/JoyCodeProxy/
+    ./cmd/JoyCode2Api/
 
 echo "  Built: ${BINARY_NAME}-darwin-arm64 ($(du -h "$DIST_DIR/${BINARY_NAME}-darwin-arm64" | cut -f1))"
 
@@ -111,10 +111,10 @@ COPY . .
 
 ARG VERSION=dev
 RUN CGO_ENABLED=1 go build -trimpath -ldflags "-s -w -X main.Version=${VERSION}" \
-    -o /JoyCodeProxy ./cmd/JoyCodeProxy/
+    -o /JoyCode2Api ./cmd/JoyCode2Api/
 
 FROM alpine:3.21
-COPY --from=builder /JoyCodeProxy /JoyCodeProxy
+COPY --from=builder /JoyCode2Api /JoyCode2Api
 DOCKERFILE
 
 docker build --platform linux/amd64 \
@@ -125,7 +125,7 @@ docker build --platform linux/amd64 \
 
 # Extract binary from Docker image
 CONTAINER_ID=$(docker create "joycode-build:$VERSION_NUM")
-docker cp "$CONTAINER_ID:/JoyCodeProxy" "$DIST_DIR/${BINARY_NAME}-linux-amd64"
+docker cp "$CONTAINER_ID:/JoyCode2Api" "$DIST_DIR/${BINARY_NAME}-linux-amd64"
 docker rm "$CONTAINER_ID" > /dev/null
 
 # Clean up
@@ -142,7 +142,7 @@ echo ""
 echo "[6/6] Creating GitHub Release..."
 
 # Commit version change
-git add "$VERSION_FILE" "$ROOT_DIR/Dockerfile" "$ROOT_DIR/cmd/JoyCodeProxy/static/"
+git add "$VERSION_FILE" "$ROOT_DIR/Dockerfile" "$ROOT_DIR/cmd/JoyCode2Api/static/"
 git commit -m "release: $VERSION" || echo "  Nothing new to commit"
 
 # Create git tag
@@ -162,22 +162,22 @@ gh release create "$VERSION" \
     "$DIST_DIR/${BINARY_NAME}-darwin-arm64" \
     "$DIST_DIR/${BINARY_NAME}-linux-amd64" \
     "$DIST_DIR/checksums-sha256.txt" \
-    --title "JoyCodeProxy $VERSION" \
-    --notes "## JoyCodeProxy $VERSION
+    --title "JoyCode2Api $VERSION" \
+    --notes "## JoyCode2Api $VERSION
 
 ### Downloads
-- \`JoyCodeProxy-darwin-arm64\` — macOS (Apple Silicon)
-- \`JoyCodeProxy-linux-amd64\` — Linux (x86_64)
+- \`JoyCode2Api-darwin-arm64\` — macOS (Apple Silicon)
+- \`JoyCode2Api-linux-amd64\` — Linux (x86_64)
 
 ### Quick Start
 \`\`\`bash
 # macOS
-chmod +x JoyCodeProxy-darwin-arm64
-./JoyCodeProxy-darwin-arm64 serve
+chmod +x JoyCode2Api-darwin-arm64
+./JoyCode2Api-darwin-arm64 serve
 
 # Linux
-chmod +x JoyCodeProxy-linux-amd64
-./JoyCodeProxy-linux-amd64 serve
+chmod +x JoyCode2Api-linux-amd64
+./JoyCode2Api-linux-amd64 serve
 \`\`\`
 
 ### Verify checksum

@@ -15,7 +15,7 @@ import (
 	"sync"
 	"time"
 
-	_ "github.com/mattn/go-sqlite3"
+	_ "modernc.org/sqlite"
 )
 
 const (
@@ -191,7 +191,7 @@ func Open(dbPath string) (*Store, error) {
 		return nil, fmt.Errorf("create db directory: %w", err)
 	}
 
-	db, err := sql.Open("sqlite3", dbPath+"?_journal_mode=WAL&_busy_timeout=5000")
+	db, err := sql.Open("sqlite", dbPath+"?_pragma=journal_mode(WAL)&_pragma=busy_timeout(5000)")
 	if err != nil {
 		return nil, fmt.Errorf("open database: %w", err)
 	}

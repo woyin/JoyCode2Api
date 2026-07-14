@@ -13,6 +13,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/vibe-coding-labs/JoyCode2Api/pkg/joycode"
 )
 
 func minInt(a, b int) int {
@@ -23,11 +24,11 @@ func minInt(a, b int) int {
 }
 
 const (
-	qrShowURL        = "https://qr.m.jd.com/show?appid=133&size=147&t=%d"
-	qrCheckURL       = "https://qr.m.jd.com/check?appid=133&token=%s&callback=jsonpCallback&_=%d"
-	qrValidURL       = "https://passport.jd.com/uc/qrCodeTicketValidation?t=%s"
-	jdUserAgent      = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36"
-	qrSessionTTL     = 3 * time.Minute
+	qrShowURL         = "https://qr.m.jd.com/show?appid=133&size=147&t=%d"
+	qrCheckURL        = "https://qr.m.jd.com/check?appid=133&token=%s&callback=jsonpCallback&_=%d"
+	qrValidURL        = "https://passport.jd.com/uc/qrCodeTicketValidation?t=%s"
+	jdUserAgent       = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36"
+	qrSessionTTL      = 3 * time.Minute
 	qrCleanupInterval = 1 * time.Minute
 )
 
@@ -353,7 +354,6 @@ func buildLoginResult(ptKey, ptPin string) (*QRLoginResult, error) {
 		}
 	}
 
-
 	if userID == "" {
 		slog.Error("qr-login: userId not found in userInfo response")
 		return nil, fmt.Errorf("无法从 JoyCode API 获取用户ID")
@@ -363,39 +363,19 @@ func buildLoginResult(ptKey, ptPin string) (*QRLoginResult, error) {
 }
 
 func fetchUserInfoWithPtKey(ptKey string) (map[string]interface{}, error) {
-	body := map[string]interface{}{
-		"tenant": "JOYCODE", "userId": "",
-		"client": "JoyCode", "clientVersion": "2.4.5",
-		"sessionId": "qr-login-session",
-	}
-	data, _ := json.Marshal(body)
-	req, err := http.NewRequest("POST", "https://joycode-api.jd.com/api/saas/user/v1/userInfo", strings.NewReader(string(data)))
+	// 复用 joycode 客户端：与 OAuth 登录走同一套 color-gateway 鉴权
+	// （HMAC 签名 + v2 端点 + ClientVersion 2.7.5 + N_PIN_PC）。
+	// 扫码登录此前自己裸调 v1 userInfo + 写死 2.4.5 版本号，与 JoyCode 2.7
+	// 主链路脱节，导致即使拿到有效 pt_key 也换不出用户信息（见 issue #21）。
+	resp, err := joycode.NewClient(ptKey, "").UserInfo()
 	if err != nil {
 		return nil, err
 	}
-	req.Header = http.Header{
-		"Content-Type": {"application/json; charset=UTF-8"},
-		"ptKey":        {ptKey},
-		"loginType":    {"N_PIN_PC"},
-		"User-Agent":   {"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) JoyCode/2.4.5 Chrome/133.0.0.0 Electron/35.2.0 Safari/537.36"},
+	if code, _ := resp["code"].(float64); code != 0 {
+		msg, _ := resp["msg"].(string)
+		return nil, fmt.Errorf("JoyCode userInfo 校验失败 (code=%.0f): %s", code, msg)
 	}
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("userInfo request: %w", err)
-	}
-	defer resp.Body.Close()
-	respBody, _ := io.ReadAll(resp.Body)
-
-	var result map[string]interface{}
-	if err := json.Unmarshal(respBody, &result); err != nil {
-		return nil, fmt.Errorf("parse userInfo: %w", err)
-	}
-	code, _ := result["code"].(float64)
-	if code != 0 {
-		msg, _ := result["msg"].(string)
-		return nil, fmt.Errorf("userInfo error (code=%.0f): %s", code, msg)
-	}
-	return result, nil
+	return resp, nil
 }
 
 // QRCleanup removes a QR login session.

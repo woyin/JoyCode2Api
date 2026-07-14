@@ -1,6 +1,6 @@
 <div align="center">
 
-# JoyCodeProxy
+# JoyCode2Api
 
 **一个不太正经的协议翻译器**
 
@@ -24,10 +24,10 @@ JoyAI-Code · GLM-5.1 · Kimi-K2.6 · MiniMax-M2.7 · Doubao-Seed-2.0-pro
 
 事情是这样的：JoyCode（京东的 AI 编程助手）里面有一些不错的模型，GLM、Kimi、MiniMax、Doubao 这些都有。但它的 API 协议跟 Anthropic 和 OpenAI 的不一样，所以 Claude Code、Cursor 这些主流编程工具接不上。
 
-JoyCodeProxy 就是在中间做了一个翻译层，把协议对齐了。改两个环境变量，Claude Code 就能直接用 JoyCode 的模型了。
+JoyCode2Api 就是在中间做了一个翻译层，把协议对齐了。改两个环境变量，Claude Code 就能直接用 JoyCode 的模型了。
 
 ```
-Claude Code / Cursor / Windsurf  →  JoyCodeProxy  →  JoyCode API
+Claude Code / Cursor / Windsurf  →  JoyCode2Api  →  JoyCode API
                                     (协议翻译)
 ```
 
@@ -69,16 +69,52 @@ Claude Code / Cursor / Windsurf  →  JoyCodeProxy  →  JoyCode API
 
 ## 怎么跑起来
 
+### 从源码构建
+
+想自己编译，或者 Release 里没有你平台的预编译包，就从源码 build。本项目是纯 Go（sqlite 用 modernc 纯 Go 驱动），**不需要任何 C 工具链**，一条 `go build` 就能编出当前平台的二进制。
+
+```bash
+git clone https://github.com/vibe-coding-labs/JoyCode2Api.git
+cd JoyCode2Api
+CGO_ENABLED=0 go build -o JoyCode2Api ./cmd/JoyCode2Api/
+./JoyCode2Api serve
+```
+
+需要 Go 1.25+。前端已经随仓库提交（`cmd/JoyCode2Api/static/`），不装 Node.js 也能直接编译出带界面的二进制；只有要改前端时才需要 `cd web && npm install && npm run build`。
+
+#### 🤖 给 AI Agent 的一键指令
+
+懒得手动敲？把下面这段原样复制给你的 AI 助手（Claude Code / Cursor / Windsurf 等），它会自动完成克隆、编译、后台启动，并用默认浏览器打开 Dashboard：
+
+> **👇 复制下面这段，粘贴给你的 AI Agent：**
+
+```text
+请帮我在本机从源码构建并运行 JoyCode2Api（一个 Go 项目），完整步骤如下：
+
+1. 在当前目录克隆仓库并进入：git clone https://github.com/vibe-coding-labs/JoyCode2Api.git && cd JoyCode2Api
+2. 确认 Go 版本 >= 1.25（运行 go version 查看）；若本机未安装 Go，先安装后再继续
+3. 编译当前平台的二进制（纯 Go，禁用 CGO，无需 C 工具链）：CGO_ENABLED=0 go build -o JoyCode2Api ./cmd/JoyCode2Api/
+4. 后台启动服务（HTTP 模式，端口 34891）：./JoyCode2Api serve --tls=false -p 34891
+   - 在后台运行，等到日志出现 "running on http://0.0.0.0:34891" 就表示就绪
+   - 若 34891 端口被占用，换一个端口（如 -p 34892），下面浏览器地址同步改
+5. 用系统默认浏览器打开管理界面 http://localhost:34891：
+   - macOS：执行 open http://localhost:34891
+   - Linux：执行 xdg-open http://localhost:34891
+   - Windows：执行 start http://localhost:34891
+
+启动后浏览器会自动打开 Dashboard。首次使用在界面上用京东 App 扫码添加账号，再按界面提示把环境变量接到 Claude Code / Cursor。服务保持后台运行，停止进程即结束。
+```
+
 ### 构建
 
-需要 Go 1.22+ 和 Node.js 18+。
+需要 Go 1.25+ 和 Node.js 18+。
 
 ```bash
 # 先构建前端
 cd web && npm install && npm run build && cd ..
 
 # 再构建后端（前端会自动嵌入）
-go build -o joycode_proxy_bin ./cmd/JoyCodeProxy/
+go build -o JoyCode2Api ./cmd/JoyCode2Api/
 ```
 
 或者用 Docker：
@@ -87,6 +123,15 @@ go build -o joycode_proxy_bin ./cmd/JoyCodeProxy/
 docker build -t joycode-proxy .
 docker run -p 34891:34891 joycode-proxy
 ```
+
+如果用 Docker Compose，仓库里自带了示例文件 `docker-compose.example.yml`：
+
+```bash
+cp docker-compose.example.yml docker-compose.yml
+docker compose up -d --build
+```
+
+> **注意：** Docker / Linux 环境通常拿不到宿主机本地 JoyCode 登录态，所以 Compose 示例默认使用 `serve --skip-validation` 先把 Dashboard 启起来，再在页面里完成 OAuth 授权登录。运行数据会保存在 `./joycode-data/`。
 
 > **构建时连不上 Alpine 源?** 如果 `docker build` 卡在 `apk add` 并报 `ca-certificates`/`gcc`/`musl-dev` "no such package"，根因通常是网络连不上官方源 `dl-cdn.alpinelinux.org`（国内常见）。用 `ALPINE_MIRROR` 构建参数切到国内镜像即可：
 >
@@ -101,7 +146,7 @@ docker run -p 34891:34891 joycode-proxy
 ### 启动
 
 ```bash
-./joycode_proxy_bin serve
+./JoyCode2Api serve
 ```
 
 默认监听 `0.0.0.0:34891`。macOS 首次启动会自动从本地 JoyCode 客户端读取凭据，不需要手动配。
@@ -137,12 +182,13 @@ claude
    - `pt_key`：来自上面 OAuth 回调 URL 的 `pt_key` 参数，或本地 JoyCode IDE 的 `state.vscdb`。
    - `user_id`：JoyCode 客户端 → 设置 → 个人信息。
 3. **挂载本地凭据**：如果宿主机装了 JoyCode IDE，可把其状态库挂进容器，让「一键导入」可用：
-   ```bash
-   docker run -p 34891:34891 \
-     -e JOYCODE_STATE_DB=/data/state.vscdb \
-     -v /path/to/JoyCode/state.vscdb:/data/state.vscdb:ro \
-     joycode-proxy
-   ```
+    ```bash
+    docker run -p 34891:34891 \
+      -e JOYCODE_STATE_DB=/data/state.vscdb \
+      -v /path/to/JoyCode/state.vscdb:/data/state.vscdb:ro \
+      joycode-proxy
+    ```
+    对应的 Docker Compose 配置可以直接在 `docker-compose.example.yml` 里取消 `state.vscdb` 挂载那一行的注释，并改成你的实际路径。
 
 ## API 端点
 
@@ -159,7 +205,7 @@ claude
 ## 项目结构
 
 ```
-cmd/JoyCodeProxy/    入口，HTTP 服务器
+cmd/JoyCode2Api/    入口，HTTP 服务器
 pkg/anthropic/       Anthropic 协议翻译（请求、响应、SSE 流式）
 pkg/openai/          OpenAI 协议翻译
 pkg/joycode/         JoyCode API 客户端

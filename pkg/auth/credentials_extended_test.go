@@ -8,7 +8,7 @@ import (
 	"runtime"
 	"testing"
 
-	_ "github.com/mattn/go-sqlite3"
+	_ "modernc.org/sqlite"
 )
 
 func TestLoadFromSystem_NonDarwin(t *testing.T) {
@@ -182,7 +182,7 @@ func TestLoadFromSystem_DatabaseMissingKey(t *testing.T) {
 	}
 
 	dbPath := filepath.Join(dbDir, "state.vscdb")
-	db, err := sql.Open("sqlite3", dbPath)
+	db, err := sql.Open("sqlite", dbPath)
 	if err != nil {
 		t.Fatalf("failed to create sqlite database: %v", err)
 	}
@@ -238,7 +238,7 @@ func createTestDB(t *testing.T, baseDir string, jsonValue string) {
 	}
 
 	dbPath := filepath.Join(dbDir, "state.vscdb")
-	db, err := sql.Open("sqlite3", dbPath)
+	db, err := sql.Open("sqlite", dbPath)
 	if err != nil {
 		t.Fatalf("failed to create sqlite database: %v", err)
 	}

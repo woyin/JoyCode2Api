@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/vibe-coding-labs/JoyCodeProxy/pkg/joycode"
-	"github.com/vibe-coding-labs/JoyCodeProxy/pkg/store"
+	"github.com/vibe-coding-labs/JoyCode2Api/pkg/joycode"
+	"github.com/vibe-coding-labs/JoyCode2Api/pkg/store"
 )
 
 // TranslateRequest converts an Anthropic MessageRequest to a JoyCode API body.
